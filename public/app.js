@@ -14,6 +14,12 @@
 const state = {
   /** @type {object|null} */
   cvData: null,
+  /** @type {object|null} */
+  letterData: null,
+  /** @type {object|null} */
+  analysis: null,
+  /** Önizlemede hangi belge görünüyor: "cv" | "letter" */
+  tab: "cv",
 };
 
 const STORAGE_KEY = "resume-tailor:profile";
@@ -174,7 +180,30 @@ function collectProfile() {
     skills: $("skills").value.trim(),
     languages: $("languages").value.trim(),
     extra: $("extra").value.trim(),
+    answers: collectAnswers(),
   };
+}
+
+/**
+ * Analiz panelindeki cevap kutularını toplar.
+ *
+ * Cevaplar formun sabit alanları değil, analiz sonucuna göre dinamik
+ * oluşturulan kutulardır. Panel kapalıysa (analiz yapılmadıysa) daha
+ * önce kaydedilmiş cevaplar korunur — aksi halde analiz yapmayan
+ * kullanıcı, geçmişte verdiği cevapları her kayıtta silerdi.
+ */
+function collectAnswers() {
+  const boxes = [...document.querySelectorAll("#reqList [data-question]")];
+  if (!boxes.length) return state.savedAnswers ?? [];
+
+  const fresh = boxes
+    .filter((b) => b.value.trim())
+    .map((b) => ({ question: b.dataset.question, answer: b.value.trim() }));
+
+  // Bu analizde sorulmayan eski cevaplar da korunur.
+  const asked = new Set(boxes.map((b) => b.dataset.question));
+  const kept = (state.savedAnswers ?? []).filter((a) => !asked.has(a.question));
+  return [...kept, ...fresh].slice(0, 30);
 }
 
 function applyProfile(profile) {
@@ -183,6 +212,7 @@ function applyProfile(profile) {
   $("skills").value = profile.skills ?? "";
   $("languages").value = profile.languages ?? "";
   $("extra").value = profile.extra ?? "";
+  state.savedAnswers = Array.isArray(profile.answers) ? profile.answers : [];
 
   for (const groupName of Object.keys(GROUPS)) {
     $(`${groupName}Items`).replaceChildren();
@@ -260,13 +290,44 @@ function showStage(which) {
   $("preview").hidden = which !== "preview";
 }
 
+/**
+ * Aktif sekmedeki belgeyi sunucuya render ettirip iframe'e koyar.
+ *
+ * Önizleme HTML'ini istemcide kurmuyoruz: PDF'i üreten şablonun AYNISI
+ * sunucuda duruyor. Aynı fonksiyondan geçmek, "önizlemede gördüğün =
+ * indirdiğin" garantisinin tek gerçek yolu.
+ */
 async function refreshPreview() {
-  if (!state.cvData) return;
-  const response = await postJson("/api/preview", { cvData: state.cvData });
+  const isCv = state.tab === "cv";
+  const data = isCv ? state.cvData : state.letterData;
+  if (!data) return;
+
+  const response = await postJson(
+    isCv ? "/api/preview" : "/api/preview-letter",
+    isCv ? { cvData: data } : { letterData: data },
+  );
   // srcdoc + sandbox: iframe içeriği ayrı bir origin'de ve script çalıştıramaz.
   // Sunucudaki HTML kaçırmasının üstüne ikinci bir savunma katmanı.
   $("preview").srcdoc = await response.text();
   showStage("preview");
+}
+
+/** Sekme değişince hem indirme butonları hem önizleme o belgeye geçer. */
+async function setTab(tab) {
+  state.tab = tab;
+  $("tabCv").classList.toggle("is-active", tab === "cv");
+  $("tabLetter").classList.toggle("is-active", tab === "letter");
+  $("tabCv").setAttribute("aria-selected", String(tab === "cv"));
+  $("tabLetter").setAttribute("aria-selected", String(tab === "letter"));
+
+  const data = tab === "cv" ? state.cvData : state.letterData;
+  $("docxBtn").disabled = !data;
+  $("pdfBtn").disabled = !data;
+  // JSON düzenleyici yalnızca CV için; ön yazı zaten düz metin.
+  $("jsonPanel").hidden = tab !== "cv" || !state.cvData;
+
+  if (data) await refreshPreview();
+  else showStage("empty");
 }
 
 function setCvData(cvData) {
@@ -277,15 +338,113 @@ function setCvData(cvData) {
   $("pdfBtn").disabled = false;
 }
 
+function setLetterData(letterData) {
+  state.letterData = letterData;
+  $("tabLetter").disabled = false;
+}
+
+/* ─────────────── İlan analizi ─────────────── */
+
+const STATUS_TR = {
+  covered: { mark: "✓", text: "var" },
+  partial: { mark: "~", text: "kısmen" },
+  missing: { mark: "✗", text: "yok" },
+};
+
+/**
+ * Analiz sonucunu ekrana basar.
+ *
+ * Cevap kutuları yalnızca partial/missing için çizilir — karşılanan bir
+ * gereksinim için soru sormak kullanıcının vaktini boşa harcar.
+ */
+function renderAnalysis(analysis) {
+  state.analysis = analysis;
+
+  const score = $("scoreValue");
+  score.textContent = String(analysis.score);
+  const box = score.parentElement;
+  box.classList.remove("is-low", "is-mid", "is-high");
+  box.classList.add(analysis.score < 50 ? "is-low" : analysis.score < 75 ? "is-mid" : "is-high");
+
+  $("verdict").textContent = analysis.verdict;
+
+  const list = $("reqList");
+  list.replaceChildren();
+
+  // Önce eksikler: kullanıcının ilgilenmesi gereken satırlar üstte olsun.
+  const order = { missing: 0, partial: 1, covered: 2 };
+  const sorted = [...analysis.requirements].sort(
+    (a, b) => order[a.status] - order[b.status],
+  );
+
+  for (const req of sorted) {
+    const li = document.createElement("li");
+    li.className = "req";
+
+    const head = document.createElement("div");
+    head.className = "req-head";
+
+    const mark = document.createElement("span");
+    mark.className = `req-mark ${req.status}`;
+    mark.textContent = STATUS_TR[req.status].mark;
+    // İşaret tek başına anlam taşımasın diye durumu metinle de veriyoruz.
+    mark.title = STATUS_TR[req.status].text;
+    head.appendChild(mark);
+
+    const name = document.createElement("span");
+    name.className = "req-name";
+    name.textContent = req.requirement;
+    head.appendChild(name);
+    li.appendChild(head);
+
+    if (req.evidence) {
+      const ev = document.createElement("p");
+      ev.className = "req-evidence";
+      ev.textContent = `"${req.evidence}"`;
+      li.appendChild(ev);
+    }
+
+    if (req.question) {
+      const wrap = document.createElement("label");
+      wrap.className = "field req-q";
+
+      const label = document.createElement("span");
+      label.className = "label";
+      label.textContent = req.question;
+      wrap.appendChild(label);
+
+      const ta = document.createElement("textarea");
+      ta.rows = 2;
+      ta.dataset.question = req.question;
+      ta.placeholder = "Cevabın CV'ne eklenecek. Bilmiyorsan boş bırak.";
+      // Aynı soru daha önce cevaplanmışsa cevabı geri getir.
+      const prev = (state.savedAnswers ?? []).find((a) => a.question === req.question);
+      if (prev) ta.value = prev.answer;
+      wrap.appendChild(ta);
+
+      li.appendChild(wrap);
+    }
+
+    list.appendChild(li);
+  }
+
+  $("analysisPanel").hidden = false;
+}
+
 /* ─────────────── İndirme ─────────────── */
 
 async function download(kind, button) {
-  if (!state.cvData) return;
+  const isCv = state.tab === "cv";
+  const data = isCv ? state.cvData : state.letterData;
+  if (!data) return;
   const original = button.textContent;
   button.disabled = true;
   button.textContent = "hazırlanıyor…";
   try {
-    const response = await postJson(`/api/render/${kind}`, { cvData: state.cvData });
+    const response = await postJson(
+      isCv ? `/api/render/${kind}` : `/api/render/letter-${kind}`,
+      isCv ? { cvData: data } : { letterData: data },
+    );
     const blob = await response.blob();
 
     // Sunucunun Content-Disposition'ında gönderdiği adı okuyoruz;
@@ -388,13 +547,86 @@ document.addEventListener("DOMContentLoaded", async () => {
       const response = await postJson("/api/generate-cv", { profile, jobPosting });
       const { cvData } = await response.json();
       setCvData(cvData);
-      await refreshPreview();
+      await setTab("cv");
     } catch (error) {
       showError($("formError"), error.message);
       showStage(state.cvData ? "preview" : "empty");
     } finally {
       button.disabled = false;
       button.querySelector(".generate-label").textContent = "CV oluştur";
+      document.body.classList.remove("is-busy");
+    }
+  });
+
+  $("tabCv").addEventListener("click", () => setTab("cv"));
+  $("tabLetter").addEventListener("click", () => setTab("letter"));
+
+  // "İlanı analiz et": ilanı okuyup profille karşılaştırır.
+  // CV üretiminden ayrı bir çağrı olduğu için ayrı bir buton.
+  $("analyzeBtn").addEventListener("click", async () => {
+    clearError($("formError"));
+    const jobPosting = $("jobPosting").value.trim();
+    if (jobPosting.length < 20) {
+      showError($("formError"), "Önce iş ilanını yapıştır.");
+      $("jobPosting").focus();
+      return;
+    }
+
+    const button = $("analyzeBtn");
+    const original = button.textContent;
+    button.disabled = true;
+    button.textContent = "Analiz ediliyor…";
+    document.body.classList.add("is-busy");
+    try {
+      const response = await postJson("/api/analyze", {
+        profile: collectProfile(),
+        jobPosting,
+      });
+      const { analysis } = await response.json();
+      renderAnalysis(analysis);
+    } catch (error) {
+      showError($("formError"), error.message);
+    } finally {
+      button.disabled = false;
+      button.textContent = original;
+      document.body.classList.remove("is-busy");
+    }
+  });
+
+  // "Ön yazı oluştur": CV'den bağımsız, aynı girdiden mektup üretir.
+  $("letterBtn").addEventListener("click", async () => {
+    clearError($("formError"));
+    const profile = collectProfile();
+    const jobPosting = $("jobPosting").value.trim();
+    if (!profile.fullName) {
+      showError($("formError"), "Ad soyad alanını doldur.");
+      $("fullName").focus();
+      return;
+    }
+    if (jobPosting.length < 20) {
+      showError($("formError"), "İş ilanı çok kısa. İlanın tamamını yapıştır.");
+      $("jobPosting").focus();
+      return;
+    }
+
+    const button = $("letterBtn");
+    const original = button.textContent;
+    button.disabled = true;
+    button.textContent = "Oluşturuluyor…";
+    document.body.classList.add("is-busy");
+    state.tab = "letter";
+    showStage("busy");
+    try {
+      const response = await postJson("/api/generate-letter", { profile, jobPosting });
+      const { letterData } = await response.json();
+      setLetterData(letterData);
+      await setTab("letter");
+    } catch (error) {
+      showError($("formError"), error.message);
+      await setTab(state.cvData ? "cv" : "letter");
+    } finally {
+      button.disabled = false;
+      button.textContent = original;
       document.body.classList.remove("is-busy");
     }
   });
@@ -418,6 +650,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   /** Üretilmiş CV'yi ve önizlemeyi sıfırlar. Forma dokunmaz. */
   function clearResult() {
     state.cvData = null;
+    state.letterData = null;
+    state.tab = "cv";
+    $("tabLetter").disabled = true;
+    $("tabCv").classList.add("is-active");
+    $("tabLetter").classList.remove("is-active");
     $("preview").srcdoc = "";
     $("jsonEditor").value = "";
     $("jsonPanel").hidden = true;
@@ -432,6 +669,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // bir kez bilgilerini gir, sonra her ilan için sadece ilanı değiştir.
   $("newJobBtn").addEventListener("click", () => {
     $("jobPosting").value = "";
+    // Analiz o ilana aitti; ilan gidince sonuç da geçersiz.
+    $("analysisPanel").hidden = true;
+    $("reqList").replaceChildren();
+    state.analysis = null;
     clearResult();
     $("jobPosting").focus();
   });
@@ -450,6 +691,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     addItem("education");
     addItem("projects");
     $("savedNote").hidden = true;
+    $("analysisPanel").hidden = true;
+    $("reqList").replaceChildren();
+    state.analysis = null;
+    state.savedAnswers = [];
     clearResult();
   });
 

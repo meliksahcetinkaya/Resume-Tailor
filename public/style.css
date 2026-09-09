@@ -540,3 +540,124 @@ input[type="text"]:focus, textarea:focus {
     transition-duration: .001ms !important;
   }
 }
+
+/* ── İlan analizi ──────────────────────────────────────── */
+
+.analyze-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 2px; }
+
+.analyze-hint { font-size: 12.5px; color: var(--muted); }
+
+.analysis {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: #FBFCFD;
+  padding: 16px;
+}
+
+.score-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+
+/* Puan, panelin tek "ağır" öğesi — gözün ilk gittiği yer olmalı. */
+.score {
+  flex-shrink: 0;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--navy);
+  letter-spacing: -.02em;
+}
+
+.score small { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+
+/* Puana göre renk: düşükse uyarı, yüksekse olumlu. Sadece rakama
+   güvenmiyoruz — durum ayrıca metinle de yazılı (renk körlüğü). */
+.score.is-low  { color: var(--danger); }
+.score.is-mid  { color: #A8770F; }
+.score.is-high { color: #1F6B3F; }
+
+.verdict { margin: 0; font-size: 13px; line-height: 1.5; color: #3C4759; }
+
+.req-list { list-style: none; margin: 0; padding: 0; }
+
+.req {
+  border-top: 1px solid var(--line);
+  padding: 10px 0;
+}
+
+.req-head { display: flex; align-items: baseline; gap: 8px; }
+
+/* Durum işareti: renk TEK başına anlam taşımıyor, işaret de farklı. */
+.req-mark {
+  flex-shrink: 0;
+  width: 17px; height: 17px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+
+.req-mark.covered { background: #DFF0E5; color: #1F6B3F; }
+.req-mark.partial { background: #FBEFD5; color: #8A5E0B; }
+.req-mark.missing { background: #F7DFDB; color: var(--danger); }
+
+.req-name { font-size: 13.5px; font-weight: 600; }
+
+.req-evidence {
+  margin: 4px 0 0 25px;
+  font-size: 12.5px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.req-q { margin: 8px 0 0 25px; }
+
+/* Soru etiketi, form alanı etiketi DEĞİL — tam bir cümle.
+   .label'ın büyük-harf + mono biçimi kısa başlıklar ("AD SOYAD") için
+   uygun; uzun bir soruda hem okumayı zorlaştırıyor hem de sayfa lang="tr"
+   olduğu için İngilizce kelimeleri bozuyor (integration → İNTEGRATİON).
+   Bu yüzden burada normal cümle biçimine dönüyoruz. */
+.req-q .label {
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.45;
+  color: #3C4759;
+  margin-bottom: 6px;
+}
+
+.req-q textarea { font-size: 13px; }
+
+.analysis-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+/* ── Çıktı sekmeleri ───────────────────────────────────── */
+
+.tabs { display: flex; align-items: center; gap: 8px; }
+
+.tab {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 4px 2px;
+  cursor: pointer;
+  transition: color .12s, border-color .12s;
+}
+
+.tab:hover:not(:disabled) { color: var(--navy); }
+.tab.is-active { color: var(--navy); border-bottom-color: var(--accent); }
+.tab:disabled { opacity: .4; cursor: not-allowed; }

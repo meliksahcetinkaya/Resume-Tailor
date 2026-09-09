@@ -44,6 +44,22 @@
           <textarea id="jobPosting" name="jobPosting" rows="8" required
             placeholder="Aranan nitelikler, sorumluluklar, teknolojiler…"></textarea>
         </label>
+
+        <div class="analyze-row">
+          <button type="button" id="analyzeBtn" class="ghost">İlanı analiz et</button>
+          <span class="analyze-hint">İlanın istediklerini bilgilerinle karşılaştırır, eksikleri sorar.</span>
+        </div>
+
+        <div id="analysisPanel" class="analysis" hidden>
+          <div class="score-row">
+            <div class="score"><span id="scoreValue">0</span><small>/100</small></div>
+            <p id="verdict" class="verdict"></p>
+          </div>
+          <ul id="reqList" class="req-list"></ul>
+          <p class="analysis-note">
+            Cevapladıkların bilgilerine kalıcı olarak eklenir; sonraki başvurularda tekrar sorulmaz.
+          </p>
+        </div>
       </fieldset>
 
       <fieldset class="step">
@@ -113,6 +129,7 @@
         <button type="submit" id="submitBtn" class="generate">
           <span class="generate-label">CV oluştur</span>
         </button>
+        <button type="button" id="letterBtn" class="ghost">Ön yazı oluştur</button>
         <button type="button" id="newJobBtn" class="ghost">Yeni ilan</button>
         <button type="button" id="resetBtn" class="ghost">Bilgilerimi sil</button>
       </div>
@@ -129,9 +146,13 @@
   </div>
 
   <!-- ─────────── SAĞ: ÖNİZLEME ─────────── -->
-  <section class="panel panel-output" aria-labelledby="previewTitle">
+  <section class="panel panel-output" aria-label="Önizleme">
     <div class="output-head">
-      <h2 id="previewTitle"><span class="step-no">03</span> Önizleme</h2>
+      <div class="tabs" role="tablist">
+        <span class="step-no">03</span>
+        <button type="button" id="tabCv" class="tab is-active" role="tab" aria-selected="true">CV</button>
+        <button type="button" id="tabLetter" class="tab" role="tab" aria-selected="false" disabled>Ön yazı</button>
+      </div>
       <div class="downloads">
         <button type="button" id="docxBtn" class="dl" disabled>Word indir</button>
         <button type="button" id="pdfBtn" class="dl" disabled>PDF indir</button>

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CVDataSchema } from "./cvSchema.ts";
+import { LetterDataSchema } from "./letterSchema.ts";
 
 /**
  * İSTEK gövdelerinin şemaları.
@@ -57,6 +58,24 @@ export const ProfileSchema = z.object({
   languages: longText.default(""),
   /** Şemaya oturmayan her şey: sertifika, ödül, gönüllülük... */
   extra: longText.default(""),
+  /**
+   * İlan analizinde sorulan sorulara verilen cevaplar.
+   *
+   * Neden profilin parçası? Çünkü cevap ("Docker'ı 2 yıldır CI/CD'de
+   * kullanıyorum") kullanıcının unuttuğu KALICI bir bilgidir, o ilana
+   * özel geçici bir not değil. Profile yazılınca localStorage'a da
+   * kaydedilir ve sonraki başvurularda kullanılır — profil kullandıkça
+   * kendiliğinden zenginleşir.
+   */
+  answers: z
+    .array(
+      z.object({
+        question: shortText.min(1),
+        answer: longText.min(1),
+      }),
+    )
+    .max(30)
+    .default([]),
 });
 
 export type Profile = z.infer<typeof ProfileSchema>;
@@ -74,4 +93,13 @@ export type GenerateCvRequest = z.infer<typeof GenerateCvRequestSchema>;
  */
 export const RenderRequestSchema = z.object({
   cvData: CVDataSchema,
+});
+
+/** İlan analizi ve ön yazı, CV üretimiyle aynı girdiyi alır. */
+export const AnalyzeRequestSchema = GenerateCvRequestSchema;
+export const GenerateLetterRequestSchema = GenerateCvRequestSchema;
+
+/** Ön yazı render uç noktaları, düzenlenmiş olabilecek mektubu alır. */
+export const RenderLetterRequestSchema = z.object({
+  letterData: LetterDataSchema,
 });

@@ -27,6 +27,13 @@ CV'de şöyle görünür:
 bir başarı için yüzde uydurmaz. Bu kurallar [`cvPrompts.ts`](src/prompts/cvPrompts.ts)
 içinde açıkça tanımlıdır.
 
+### İlan uyum analizi
+
+Sistem ilanın istediklerini profilinizle karşılaştırır. Eksik gördüğü yeri kendi
+doldurmaz — size sorar. Verdiğiniz cevap doğrudan CV ve ön yazıya girer.
+
+![İlan uyum analizi](docs/analiz.png)
+
 ### Örnek çıktı
 
 <img src="docs/ornek-cv.png" width="560" alt="Üretilen CV örneği">
@@ -36,11 +43,16 @@ içinde açıkça tanımlıdır.
 ## Özellikler
 
 - **İlana göre uyarlama** — Aynı profilden her ilan için farklı CV
+- **İlan uyum skoru** — İlanın gereksinimlerini çıkarır, profilinizle karşılaştırır, 0-100 puan verir
+- **Eksik analizi** — Karşılanmayan her gereksinim için somut bir soru sorar; cevabınız profile kalıcı olarak eklenir ve sonraki başvurularda kullanılır
+- **Ön yazı üretimi** — Aynı profil ve ilandan, CV'yi tekrarlamayan 150-250 kelimelik ön yazı
 - **Canlı önizleme** — İndirmeden önce CV'yi ekranda görürsünüz; gördüğünüz, indirdiğinizin birebir aynısıdır
 - **İki format** — PDF (başvuru için) ve Word (kendiniz düzenlemek için; gerçek paragraf ve madde listeleriyle)
 - **Elle düzeltme** — Beğenmediğiniz bir kelimeyi JSON panelinden değiştirip önizlemeyi yenilersiniz; LLM'e tekrar gidilmez
 - **Türkçe karakter desteği** — İ, Ğ, Ş her iki formatta da sorunsuz
 - **Mock mod** — `MOCK_LLM=true` ile API kotası harcamadan tüm akışı denersiniz
+- **Geçici hatalara dayanıklılık** — Gemini yoğunken (503) veya hız sınırında (429)
+  otomatik olarak 3 kez, artan beklemeyle tekrar dener; hata mesajları sebebe göre ayrışır
 - **Otomatik taslak kaydı** — Form tarayıcıda saklanır, sekmeyi yenilerseniz kaybolmaz
 
 ---
@@ -129,14 +141,17 @@ src/
 ├── middleware/errorHandler.ts Hataları tek tip JSON'a çevirir
 ├── schemas/
 │   ├── cvSchema.ts            CVData şeması (LLM çıktısı)
+│   ├── analysisSchema.ts      İlan uyum analizi şeması
+│   ├── letterSchema.ts        Ön yazı şeması
 │   └── requestSchema.ts       İstek gövdelerinin şemaları
 ├── prompts/cvPrompts.ts       Sistem promptu + profil biçimlendirme
 └── services/
-    ├── llm.ts                 Gemini çağrısı + structured output + doğrulama
+    ├── llm.ts                 Gemini çağrıları (CV, analiz, ön yazı) + doğrulama
     ├── mockCv.ts              LLM'siz çalışmak için sahte veri
     ├── cvHtml.ts              CVData → HTML (önizleme ve PDF ortak kullanır)
-    ├── pdfBuilder.ts          HTML → Puppeteer → PDF
-    └── docxBuilder.ts         CVData → Word
+    ├── letterHtml.ts          LetterData → HTML
+    ├── pdfBuilder.ts          HTML → Puppeteer → PDF (CV ve ön yazı)
+    └── docxBuilder.ts         CVData / LetterData → Word
 
 public/                        index.html · style.css · app.js
 tests/                         Node'un yerleşik test koşucusu
@@ -182,6 +197,11 @@ düzeltebilir ve bir formatı yeniden üretmek LLM'e hiç gitmez.
 | POST | `/api/preview` | `{ cvData }` | `text/html` |
 | POST | `/api/render/docx` | `{ cvData }` | `.docx` |
 | POST | `/api/render/pdf` | `{ cvData }` | `.pdf` |
+| POST | `/api/analyze` | `{ profile, jobPosting }` | `{ analysis }` |
+| POST | `/api/generate-letter` | `{ profile, jobPosting }` | `{ letterData }` |
+| POST | `/api/preview-letter` | `{ letterData }` | `text/html` |
+| POST | `/api/render/letter-docx` | `{ letterData }` | `.docx` |
+| POST | `/api/render/letter-pdf` | `{ letterData }` | `.pdf` |
 
 ---
 
@@ -219,6 +239,10 @@ indirme isteğinde geri gönderilir. Veritabanı ve oturum yönetimi gerekmez.
   LLM kotası harcar.
 - **Tek Chromium örneği.** Aynı anda çok sayıda PDF isteği geldiğinde sekme havuzu
   veya kuyruk gerekir.
-- **Geçici LLM hatalarında otomatik tekrar deneme yok.** Gemini yoğunken 503 dönebilir;
-  şu an kullanıcının tekrar denemesi gerekir.
-- **Rehberli sohbet yok.** Sistem eksik bilgi için soru sormaz; giriş yalnızca formdur.
+- **Ücretsiz kota günde 20 istek.** `gemini-3.6-flash` için Google'ın ücretsiz
+  katman sınırı düşük; her CV, analiz ve ön yazı ayrı bir istek harcar. Yoğun
+  kullanımda ücretli plana geçmek gerekir.
+- **Serbest sohbet yok.** Sistem eksik bilgi için soru sorar (ilan analizi), ancak
+  serbest bir sohbet arayüzü yoktur; giriş yalnızca formdur.
+- **Analiz yavaş.** Gemini'nin gereksinimleri çıkarıp karşılaştırması 15-40 saniye
+  sürebilir; CV üretiminden belirgin şekilde uzun.

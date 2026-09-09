@@ -1,5 +1,7 @@
 import type { CVData } from "../schemas/cvSchema.ts";
 import type { Profile } from "../schemas/requestSchema.ts";
+import type { Analysis } from "../schemas/analysisSchema.ts";
+import type { LetterData } from "../schemas/letterSchema.ts";
 
 /**
  * MOCK_LLM=true iken kullanılan sahte üretici.
@@ -65,5 +67,59 @@ export function buildMockCv(profile: Profile): CVData {
     additionalSections: [
       { heading: "Sertifikalar", items: ["[MOCK] Örnek Sertifika – 2024"] },
     ],
+  };
+}
+
+/** MOCK_LLM=true iken ilan analizi yerine dönen sabit sonuç. */
+export function buildMockAnalysis(_profile: Profile): Analysis {
+  return {
+    score: 68,
+    verdict:
+      "[MOCK] Teknik gereksinimlerin çoğu karşılanıyor ancak test ve mimari " +
+      "tarafında profilde açık bir dayanak yok. Bu metin sahtedir.",
+    requirements: [
+      {
+        requirement: "Node.js ile REST API geliştirme",
+        status: "covered",
+        evidence: "Sipariş servisini Node.js ile yazdım",
+        question: "",
+      },
+      {
+        requirement: "PostgreSQL sorgu optimizasyonu",
+        status: "partial",
+        evidence: "raporlama sorguları çok yavaştı, indeksleyip hızlandırdım",
+        question:
+          "Optimizasyonu nasıl yaptın? EXPLAIN ile analiz ettin mi, hangi indeks türünü seçtin?",
+      },
+      {
+        requirement: "Test yazma alışkanlığı",
+        status: "missing",
+        evidence: "",
+        question: "Hiç birim veya entegrasyon testi yazdın mı? Hangi araçla, ne kadar kapsamda?",
+      },
+    ],
+  };
+}
+
+/** MOCK_LLM=true iken ön yazı yerine dönen sabit metin. */
+export function buildMockLetter(profile: Profile): LetterData {
+  const contactLines = profile.contact
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return {
+    name: profile.fullName,
+    contactLines: contactLines.length ? contactLines : ["ornek@eposta.com", "İstanbul"],
+    greeting: "Sayın İnsan Kaynakları Yetkilisi,",
+    subject: "[MOCK] Backend Developer pozisyonu başvurusu",
+    paragraphs: [
+      "[MOCK] Bu bir örnek ön yazıdır; gerçek üretim için MOCK_LLM=false yapın. " +
+        "İlanınızda belirtilen Backend Developer pozisyonuna başvurmak istiyorum.",
+      "Son iki yıldır Node.js ve PostgreSQL ile sipariş yönetimi servisleri geliştiriyorum. " +
+        "Yavaş çalışan raporlama sorgularını indeksleyerek yanıt süresini belirgin şekilde düşürdüm.",
+      "Görüşme fırsatı bulabilirsek deneyimimi ayrıntılı olarak paylaşmaktan memnuniyet duyarım.",
+    ],
+    closing: "Saygılarımla,",
   };
 }

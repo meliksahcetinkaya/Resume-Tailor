@@ -1,9 +1,16 @@
 import { Router } from "express";
-import { GenerateCvRequestSchema, RenderRequestSchema } from "../schemas/requestSchema.ts";
+import {
+  AnalyzeRequestSchema,
+  GenerateCvRequestSchema,
+  GenerateLetterRequestSchema,
+  RenderLetterRequestSchema,
+  RenderRequestSchema,
+} from "../schemas/requestSchema.ts";
+import { renderLetterHtml } from "../services/letterHtml.ts";
 import { renderCvHtml } from "../services/cvHtml.ts";
-import { buildDocx } from "../services/docxBuilder.ts";
-import { generateCv } from "../services/llm.ts";
-import { buildPdf } from "../services/pdfBuilder.ts";
+import { buildDocx, buildLetterDocx } from "../services/docxBuilder.ts";
+import { analyzeJobMatch, generateCv, generateLetter } from "../services/llm.ts";
+import { buildLetterPdf, buildPdf } from "../services/pdfBuilder.ts";
 import { MOCK_LLM } from "../config.ts";
 
 /**
@@ -31,9 +38,9 @@ const router = Router();
  * ASCII bir yedek (`filename`) ve UTF-8 kodlanmış gerçek ad (`filename*`)
  * birlikte gönderilir; modern tarayıcılar ikincisini tercih eder.
  */
-function contentDisposition(fullName: string, ext: string): string {
+function contentDisposition(fullName: string, ext: string, kind = "CV"): string {
   const base = fullName.trim().replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, "_") || "CV";
-  const filename = `${base}_CV.${ext}`;
+  const filename = `${base}_${kind}.${ext}`;
   const ascii = filename.replace(/[^\x20-\x7E]/g, "_");
   return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }
@@ -85,6 +92,58 @@ router.post("/render/pdf", async (req, res) => {
   const { cvData } = RenderRequestSchema.parse(req.body);
   const buffer = await buildPdf(cvData);
   res.type("application/pdf").setHeader("Content-Disposition", contentDisposition(cvData.name, "pdf"));
+  res.send(buffer);
+});
+
+/**
+ * POST /api/analyze
+ * Gövde: { profile, jobPosting }  →  Cevap: { analysis }
+ *
+ * CV üretiminden AYRI bir çağrı. Neden birleştirmedik? İki sebep:
+ *   1. Farklı işler — biri metin yazar, diğeri karşılaştırır. Tek çağrıda
+ *      birleştirmek modelin dikkatini böler, iki çıktı da zayıflar.
+ *   2. Opsiyonel — acelesi olan analizi atlayıp doğrudan CV üretebilmeli;
+ *      zorunlu olsaydı herkes her seferinde iki kat kota harcardı.
+ */
+router.post("/analyze", async (req, res) => {
+  const { profile, jobPosting } = AnalyzeRequestSchema.parse(req.body);
+  const analysis = await analyzeJobMatch(profile, jobPosting);
+  res.json({ analysis });
+});
+
+/**
+ * POST /api/generate-letter
+ * Gövde: { profile, jobPosting }  →  Cevap: { letterData }
+ *
+ * CV ile birebir aynı kalıp: üretim ve render ayrı. Burada dosya üretilmez,
+ * sadece yapılandırılmış mektup verisi döner.
+ */
+router.post("/generate-letter", async (req, res) => {
+  const { profile, jobPosting } = GenerateLetterRequestSchema.parse(req.body);
+  const letterData = await generateLetter(profile, jobPosting);
+  res.json({ letterData });
+});
+
+router.post("/preview-letter", (req, res) => {
+  const { letterData } = RenderLetterRequestSchema.parse(req.body);
+  res.type("html").send(renderLetterHtml(letterData));
+});
+
+router.post("/render/letter-docx", async (req, res) => {
+  const { letterData } = RenderLetterRequestSchema.parse(req.body);
+  const buffer = await buildLetterDocx(letterData);
+  res
+    .type("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    .setHeader("Content-Disposition", contentDisposition(letterData.name, "docx", "OnYazi"));
+  res.send(buffer);
+});
+
+router.post("/render/letter-pdf", async (req, res) => {
+  const { letterData } = RenderLetterRequestSchema.parse(req.body);
+  const buffer = await buildLetterPdf(letterData);
+  res
+    .type("application/pdf")
+    .setHeader("Content-Disposition", contentDisposition(letterData.name, "pdf", "OnYazi"));
   res.send(buffer);
 });
 

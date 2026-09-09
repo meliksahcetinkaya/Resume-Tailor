@@ -2,6 +2,8 @@ import puppeteer, { type Browser } from "puppeteer";
 import { RenderError } from "../errors.ts";
 import type { CVData } from "../schemas/cvSchema.ts";
 import { renderCvHtml } from "./cvHtml.ts";
+import { renderLetterHtml } from "./letterHtml.ts";
+import type { LetterData } from "../schemas/letterSchema.ts";
 
 /**
  * CVData -> PDF.
@@ -51,28 +53,43 @@ async function getBrowser(): Promise<Browser> {
   return browserPromise;
 }
 
-export async function buildPdf(cv: CVData): Promise<Buffer> {
+/**
+ * Herhangi bir HTML dokümanını PDF'e basar.
+ *
+ * CV ve ön yazı aynı işi yapıyor — sadece HTML'leri farklı. Bu yüzden
+ * Puppeteer mantığı burada TEK kez yazılıyor; aşağıdaki iki fonksiyon
+ * yalnızca hangi şablonun çağrılacağına karar veriyor.
+ */
+async function htmlToPdf(html: string, label: string): Promise<Buffer> {
   const browser = await getBrowser();
   const page = await browser.newPage();
   try {
     // setContent, HTML'i doğrudan sekmeye yazar — geçici dosyaya veya
-    // yerel bir HTTP sunucusuna ihtiyaç yok. HTML'imiz tamamen kendi
-    // kendine yeter (CSS gömülü, dış kaynak yok), bu yüzden ağ beklemesi de yok.
-    await page.setContent(renderCvHtml(cv), { waitUntil: "load" });
+    // yerel bir HTTP sunucusuna ihtiyaç yok. HTML'imiz kendi kendine
+    // yeter (CSS gömülü, dış kaynak yok), bu yüzden ağ beklemesi de yok.
+    await page.setContent(html, { waitUntil: "load" });
 
     const bytes = await page.pdf({
       format: "A4",
-      // CSS'teki @page kuralı kenar boşluklarını yönetiyor.
       printBackground: true,
+      // Kenar boşluklarını CSS'teki @page kuralı yönetiyor.
       preferCSSPageSize: true,
     });
     return Buffer.from(bytes);
   } catch (cause) {
-    throw new RenderError("PDF üretilemedi.", { cause });
+    throw new RenderError(`${label} PDF olarak üretilemedi.`, { cause });
   } finally {
     // Sekme her durumda kapanmalı; yoksa bellek sızdırırız.
     await page.close().catch(() => {});
   }
+}
+
+export function buildPdf(cv: CVData): Promise<Buffer> {
+  return htmlToPdf(renderCvHtml(cv), "CV");
+}
+
+export function buildLetterPdf(letter: LetterData): Promise<Buffer> {
+  return htmlToPdf(renderLetterHtml(letter), "Ön yazı");
 }
 
 /** Sunucu kapanırken tarayıcı sürecini de kapat (bkz. server.ts). */
