@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resume Tailor — İlana özel CV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="mark">
+    <svg class="mark-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="5" y="3" width="14" height="18" rx="1.5"/>
+      <line x1="8.5" y1="8" x2="15.5" y2="8"/>
+      <line x1="8.5" y1="12" x2="15.5" y2="12"/>
+      <line x1="8.5" y1="16" x2="13" y2="16"/>
+    </svg>
+    <!-- lang="en": sayfa lang="tr" olduğu için `text-transform: uppercase`
+         Türkçe kuralını uygular ve "Tailor" → "TAİLOR" olur (noktalı İ).
+         Marka adı İngilizce olduğundan bu parçayı İngilizce işaretliyoruz. -->
+    <span class="mark-name" lang="en">Resume Tailor</span>
+  </div>
+  <p class="mark-tag">İş ilanını yapıştır, bilgilerini gir, CV'ni indir.</p>
+  <span id="mockBadge" class="badge" hidden>mock mod</span>
+</header>
+
+<main class="layout">
+
+  <!-- ─────────── SOL: GİRDİ ─────────── -->
+  <section class="panel panel-input" aria-labelledby="formTitle">
+    <h1 id="formTitle" class="sr-only">CV bilgilerini gir</h1>
+
+    <form id="cvForm" novalidate>
+
+      <fieldset class="step">
+        <legend><span class="step-no">01</span> İş ilanı</legend>
+        <p class="step-hint">Başvuracağın ilanı olduğu gibi yapıştır. CV bu ilana göre hazırlanır.</p>
+        <label class="field">
+          <span class="label">İlan metni</span>
+          <textarea id="jobPosting" name="jobPosting" rows="8" required
+            placeholder="Aranan nitelikler, sorumluluklar, teknolojiler…"></textarea>
+        </label>
+      </fieldset>
+
+      <fieldset class="step">
+        <legend><span class="step-no">02</span> Bilgilerin</legend>
+        <p class="step-hint">Dağınık yazabilirsin. Cümleleri düzeltmek ve maddelere ayırmak bizim işimiz.</p>
+        <p id="savedNote" class="saved-note" hidden>
+          Bilgilerin bu tarayıcıda kayıtlı — bir dahaki sefere tekrar girmene gerek yok.
+        </p>
+
+        <div class="row-2">
+          <label class="field">
+            <span class="label">Ad soyad</span>
+            <input id="fullName" name="fullName" type="text" required placeholder="Ayşe Yılmaz">
+          </label>
+          <label class="field">
+            <span class="label">İletişim <em>her satıra bir tane</em></span>
+            <textarea id="contact" name="contact" rows="3"
+              placeholder="ayse@eposta.com&#10;+90 555 000 00 00&#10;linkedin.com/in/ayseyilmaz&#10;İstanbul"></textarea>
+          </label>
+        </div>
+
+        <div class="group" data-group="experience">
+          <div class="group-head">
+            <h2>Deneyim</h2>
+            <button type="button" class="add" data-add="experience">+ deneyim ekle</button>
+          </div>
+          <div class="items" id="experienceItems"></div>
+        </div>
+
+        <div class="group" data-group="education">
+          <div class="group-head">
+            <h2>Eğitim</h2>
+            <button type="button" class="add" data-add="education">+ eğitim ekle</button>
+          </div>
+          <div class="items" id="educationItems"></div>
+        </div>
+
+        <div class="group" data-group="projects">
+          <div class="group-head">
+            <h2>Projeler</h2>
+            <button type="button" class="add" data-add="projects">+ proje ekle</button>
+          </div>
+          <div class="items" id="projectsItems"></div>
+        </div>
+
+        <label class="field">
+          <span class="label">Beceriler <em>virgülle ayır</em></span>
+          <textarea id="skills" name="skills" rows="2"
+            placeholder="TypeScript, Node.js, PostgreSQL, Docker, Git"></textarea>
+        </label>
+
+        <div class="row-2">
+          <label class="field">
+            <span class="label">Yabancı diller</span>
+            <textarea id="languages" name="languages" rows="2"
+              placeholder="İngilizce (B2), Almanca (A2)"></textarea>
+          </label>
+          <label class="field">
+            <span class="label">Ek bilgiler <em>sertifika, ödül, gönüllülük</em></span>
+            <textarea id="extra" name="extra" rows="2"
+              placeholder="AWS Cloud Practitioner (2024), TÜBİTAK 2209-A bursiyeri"></textarea>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" id="submitBtn" class="generate">
+          <span class="generate-label">CV oluştur</span>
+        </button>
+        <button type="button" id="newJobBtn" class="ghost">Yeni ilan</button>
+        <button type="button" id="resetBtn" class="ghost">Bilgilerimi sil</button>
+      </div>
+
+      <p id="formError" class="error" role="alert" hidden></p>
+    </form>
+  </section>
+
+  <!-- ─────────── AYIRICI ─────────── -->
+  <div class="divider" aria-hidden="true">
+    <svg class="divider-svg" preserveAspectRatio="none" viewBox="0 0 8 100">
+      <line class="divider-line" x1="4" y1="0" x2="4" y2="100"/>
+    </svg>
+  </div>
+
+  <!-- ─────────── SAĞ: ÖNİZLEME ─────────── -->
+  <section class="panel panel-output" aria-labelledby="previewTitle">
+    <div class="output-head">
+      <h2 id="previewTitle"><span class="step-no">03</span> Önizleme</h2>
+      <div class="downloads">
+        <button type="button" id="docxBtn" class="dl" disabled>Word indir</button>
+        <button type="button" id="pdfBtn" class="dl" disabled>PDF indir</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="emptyState" class="empty">
+        <div class="empty-sheet"></div>
+        <p class="empty-text">CV'n burada görünecek.</p>
+        <p class="empty-sub">Formu doldur, <strong>CV oluştur</strong>'a bas.</p>
+      </div>
+
+      <div id="busyState" class="progress" hidden>
+        <svg class="progress-line" viewBox="0 0 200 12" aria-hidden="true">
+          <line x1="0" y1="6" x2="200" y2="6"/>
+        </svg>
+        <p class="progress-text">Oluşturuluyor… <span class="progress-sub">ilan okunuyor, maddeler yazılıyor</span></p>
+      </div>
+
+      <iframe id="preview" class="preview" title="CV önizlemesi" sandbox hidden></iframe>
+    </div>
+
+    <details id="jsonPanel" class="json" hidden>
+      <summary>Veriyi elle düzelt</summary>
+      <p class="json-hint">
+        CV verisi JSON olarak aşağıda. Bir kelimeyi değiştirmek, madde silmek ya da sıralamayı
+        değiştirmek için düzenle, sonra önizlemeyi yenile. İndirdiğin dosyalar bu veriden üretilir.
+      </p>
+      <textarea id="jsonEditor" rows="14" spellcheck="false"></textarea>
+      <div class="json-actions">
+        <button type="button" id="applyJson" class="ghost">Önizlemeyi yenile</button>
+        <span id="jsonError" class="error" role="alert" hidden></span>
+      </div>
+    </details>
+  </section>
+
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

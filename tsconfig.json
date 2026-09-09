@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["esnext", "dom"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    // Node 24, TypeScript'i "type stripping" ile doğrudan çalıştırır: tipleri siler,
+    // kod üretmez. Bu yüzden sadece SİLİNEBİLİR sözdizimi kullanabiliriz
+    // (enum, namespace, parameter property, decorator YASAK) ve import'larda
+    // gerçek dosya adını (.ts) yazmamız gerekir.
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
+}
