@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { MOCK_LLM, PORT } from "./config.ts";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.ts";
-import cvRouter from "./routes/cv.ts";
+import cvRouter from "./routes.ts";
 import { closeBrowser } from "./services/pdfBuilder.ts";
 
 /**

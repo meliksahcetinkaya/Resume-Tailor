@@ -24,7 +24,7 @@ CV'de şöyle görünür:
 >   optimize ederek veri erişim hızını artırdım.
 
 **Uydurmaz.** Vermediğiniz bir şirketi, tarihi ya da teknolojiyi eklemez; ölçmediğiniz
-bir başarı için yüzde uydurmaz. Bu kurallar [`cvPrompts.ts`](src/prompts/cvPrompts.ts)
+bir başarı için yüzde uydurmaz. Bu kurallar [`prompts.ts`](src/prompts.ts)
 içinde açıkça tanımlıdır.
 
 ### İlan uyum analizi
@@ -137,17 +137,17 @@ src/
 ├── server.ts                  Express giriş noktası, middleware montajı
 ├── config.ts                  .env okuma, eksik anahtarda fail-fast
 ├── errors.ts                  AppError / LlmError / RenderError
-├── routes/cv.ts               API uç noktaları
+├── routes.ts                  Tüm API uç noktaları
+├── prompts.ts                 CV, analiz ve ön yazı promptları
 ├── middleware/errorHandler.ts Hataları tek tip JSON'a çevirir
 ├── schemas/
 │   ├── cvSchema.ts            CVData şeması (LLM çıktısı)
 │   ├── analysisSchema.ts      İlan uyum analizi şeması
 │   ├── letterSchema.ts        Ön yazı şeması
 │   └── requestSchema.ts       İstek gövdelerinin şemaları
-├── prompts/cvPrompts.ts       Sistem promptu + profil biçimlendirme
 └── services/
     ├── llm.ts                 Gemini çağrıları (CV, analiz, ön yazı) + doğrulama
-    ├── mockCv.ts              LLM'siz çalışmak için sahte veri
+    ├── mockData.ts            LLM'siz çalışmak için sahte veri
     ├── cvHtml.ts              CVData → HTML (önizleme ve PDF ortak kullanır)
     ├── letterHtml.ts          LetterData → HTML
     ├── pdfBuilder.ts          HTML → Puppeteer → PDF (CV ve ön yazı)
@@ -173,11 +173,11 @@ Bir isteğin yolculuğu:
 ```
 [Tarayıcı] app.js → POST /api/generate-cv { profile, jobPosting }
      ▼
-[routes/cv.ts]  Zod ile gövdeyi doğrula  ──✗──► 400
+[routes.ts]        Zod ile gövdeyi doğrula  ──✗──► 400
      ▼
 [services/llm.ts]  prompt kur → Gemini (responseSchema) → JSON.parse
      ▼              → CVDataSchema.safeParse  ──✗──► 502
-[routes/cv.ts]  res.json({ cvData })         ← DOSYA ÜRETİLMEZ
+[routes.ts]        res.json({ cvData })         ← DOSYA ÜRETİLMEZ
      ▼
 [Tarayıcı] POST /api/preview → HTML → iframe'de göster
      ▼

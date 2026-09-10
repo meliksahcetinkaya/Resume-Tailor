@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildUserPrompt, formatProfile } from "../src/prompts/cvPrompts.ts";
+import { buildUserPrompt, formatProfile } from "../src/prompts.ts";
 import { ProfileSchema } from "../src/schemas/requestSchema.ts";
 
 const profile = ProfileSchema.parse({

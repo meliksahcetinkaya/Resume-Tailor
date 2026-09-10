@@ -1,7 +1,10 @@
-import type { Profile } from "../schemas/requestSchema.ts";
+import type { Profile } from "./schemas/requestSchema.ts";
 
 /**
- * Prompt'lar koda gömülmez, buraya toplanır.
+ * UYGULAMANIN TÜM PROMPT'LARI burada toplanır: CV üretimi, ilan uyum
+ * analizi ve ön yazı. Üçü de aynı `formatProfile` fonksiyonunu paylaştığı
+ * için ayrı dosyalara bölmek, ortak parçayı dördüncü bir dosyaya
+ * taşımayı gerektirirdi — bu boyutta kazancından fazla maliyet.
  *
  * Neden? Prompt bu uygulamanın en sık değişecek parçası — çıktı kalitesini
  * ayarlamak için defalarca dokunacaksın. Servis mantığıyla iç içe olursa

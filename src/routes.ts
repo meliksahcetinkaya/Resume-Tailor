@@ -5,16 +5,17 @@ import {
   GenerateLetterRequestSchema,
   RenderLetterRequestSchema,
   RenderRequestSchema,
-} from "../schemas/requestSchema.ts";
-import { renderLetterHtml } from "../services/letterHtml.ts";
-import { renderCvHtml } from "../services/cvHtml.ts";
-import { buildDocx, buildLetterDocx } from "../services/docxBuilder.ts";
-import { analyzeJobMatch, generateCv, generateLetter } from "../services/llm.ts";
-import { buildLetterPdf, buildPdf } from "../services/pdfBuilder.ts";
-import { MOCK_LLM } from "../config.ts";
+} from "./schemas/requestSchema.ts";
+import { renderLetterHtml } from "./services/letterHtml.ts";
+import { renderCvHtml } from "./services/cvHtml.ts";
+import { buildDocx, buildLetterDocx } from "./services/docxBuilder.ts";
+import { analyzeJobMatch, generateCv, generateLetter } from "./services/llm.ts";
+import { buildLetterPdf, buildPdf } from "./services/pdfBuilder.ts";
+import { MOCK_LLM } from "./config.ts";
 
 /**
- * ROUTE KATMANI — sadece HTTP bilir.
+ * ROUTE KATMANI — sadece HTTP bilir. Üç özelliğin (CV, ilan analizi,
+ * ön yazı) tüm uç noktaları burada.
  *
  * Buradaki her handler üç şey yapar ve fazlasını yapmaz:
  *   1. Gelen gövdeyi doğrula (Zod),

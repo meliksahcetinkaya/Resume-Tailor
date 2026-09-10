@@ -4,9 +4,9 @@ import type { Analysis } from "../schemas/analysisSchema.ts";
 import type { LetterData } from "../schemas/letterSchema.ts";
 
 /**
- * MOCK_LLM=true iken kullanılan sahte üretici.
+ * MOCK_LLM=true iken kullanılan sahte üreticiler (CV, analiz, ön yazı).
  *
- * Amacı: Gemini'ye tek istek atmadan tüm akışı (route → önizleme → docx → pdf)
+ * Amaçları: Gemini'ye tek istek atmadan tüm akışı (route → önizleme → docx → pdf)
  * çalıştırabilmek. Arayüzü, şablonu ve dosya üretimini geliştirirken ücretsiz
  * kotayı yakmazsın ve internet olmadan çalışabilirsin.
  *

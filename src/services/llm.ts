@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type, type Schema } from "@google/genai";
 import { GEMINI_MODEL, GOOGLE_API_KEY, MOCK_LLM } from "../config.ts";
 import { LlmError } from "../errors.ts";
-import { buildUserPrompt, SYSTEM_PROMPT } from "../prompts/cvPrompts.ts";
+import { buildUserPrompt, SYSTEM_PROMPT } from "../prompts.ts";
 import { CVDataSchema, type CVData } from "../schemas/cvSchema.ts";
 import type { Profile } from "../schemas/requestSchema.ts";
 import type { z } from "zod";
@@ -12,8 +12,8 @@ import {
   LETTER_SYSTEM_PROMPT,
   buildAnalysisPrompt,
   buildLetterPrompt,
-} from "../prompts/cvPrompts.ts";
-import { buildMockCv, buildMockAnalysis, buildMockLetter } from "./mockCv.ts";
+} from "../prompts.ts";
+import { buildMockCv, buildMockAnalysis, buildMockLetter } from "./mockData.ts";
 
 /**
  * Gemini ile konuşan TEK yer.
